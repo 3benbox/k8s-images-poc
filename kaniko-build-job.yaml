@@ -1,0 +1,60 @@
+---
+kind: Job
+apiVersion: batch/v1
+metadata:
+  name: kaniko-build-job
+spec:
+  template:
+    spec:
+      initContainers:
+        - name: git-clone
+          image: alpine/git
+          command:
+            - /bin/sh
+            - -c
+            - /scripts/git-init.sh
+          volumeMounts:
+            - name: data
+              mountPath: /data
+            - name: scripts
+              mountPath: /scripts
+          envFrom:
+            - configMapRef:
+                name: kaniko-build-env
+          resources:
+            requests:
+              cpu: 200m
+              memory: 100Mi
+              ephemeral-storage: 2Gi
+      containers:
+        - name: kaniko-build
+          image: gcr.io/kaniko-project/executor:latest
+          args:
+            - --dockerfile=/data/$(DOCKER_FILE)
+            - --target=$(DOCKER_TARGET)
+            - --context=/data
+            - --insecure
+            - --destination=registry.shared-services:5000/$(REPO_NAME):$(GIT_REVISION)
+            - --cache=true
+          envFrom:
+            - configMapRef:
+                name: kaniko-build-env
+          volumeMounts:
+            - name: data
+              mountPath: /data
+          resources:
+            requests:
+              cpu: 2000m
+              memory: 2Gi
+              ephemeral-storage: 2Gi
+      restartPolicy: Never
+      volumes:
+        - name: data
+          emptyDir: {}
+        - name: scripts
+          configMap:
+            name: git-init
+            defaultMode: 0744
+            items:
+              - key: git-init.sh
+                path: git-init.sh

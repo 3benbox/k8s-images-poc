@@ -1,0 +1,12 @@
+---
+
+namespace: shared-services
+
+resources:
+- registry-statefulset.yaml
+#- kaniko-build-job.yaml
+
+configMapGenerator:
+  - name: kaniko-build
+    files:
+      - git-init.sh

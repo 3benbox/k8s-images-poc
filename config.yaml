@@ -1,0 +1,28 @@
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: kaniko-build-env
+data:
+  DOCKER_FILE: Dockerfile
+  DOCKER_TARGET: runner
+  REPO_NAME: keramik-runner
+  GIT_REVISION: main
+  GIT_URL: https://github.com/3box/keramik.git
+---
+kind: ConfigMap
+apiVersion: v1
+metadata:
+  name: git-init
+data:
+  git-init.sh: |-
+    #!/bin/sh
+    set -e
+
+    cd /data
+    rm -Rf .git || true
+    git init
+    git remote add origin "$GIT_URL"
+    git fetch origin "$GIT_REVISION"
+    git checkout "$GIT_REVISION"
+    ls -l

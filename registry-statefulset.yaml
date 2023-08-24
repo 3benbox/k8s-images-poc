@@ -1,0 +1,79 @@
+---
+kind: StatefulSet
+apiVersion: apps/v1
+metadata:
+  name: registry
+  labels:
+    app: registry
+spec:
+  serviceName: registry
+  replicas: 1
+  selector:
+    matchLabels:
+      app: registry
+  template:
+    metadata:
+      labels:
+        app: registry
+    spec:
+      containers:
+        - name: registry
+          image: registry:2
+          env:
+            - name: REGISTRY_HTTP_HEADERS_Access-Control-Allow-Origin
+              value: "['http://ryzen7-3700x:8080/','*']"
+          ports:
+            - containerPort: 5000
+          volumeMounts:
+            - name: registry-storage
+              mountPath: /var/lib/registry
+        - name: registry-ui
+          image: joxit/docker-registry-ui:2
+          ports:
+            - containerPort: 8080
+          env:
+            - name: REGISTRY_URL
+              value: http://127.0.0.1:5000
+            - name: DELETE_IMAGES
+              value: "true"
+            - name: SHOW_CONTENT_DIGEST
+              value: "true"
+            - name: SINGLE_REGISTRY
+              value: "true"
+            - name: NGINX_LISTEN_PORT
+              value: "8080"
+  volumeClaimTemplates:
+    - metadata:
+        name: registry-storage
+      spec:
+        accessModes: ["ReadWriteOnce"]
+        resources:
+          requests:
+            storage: 100Gi
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: registry
+  labels:
+    app: registry
+spec:
+  type: LoadBalancer
+  ports:
+    - port: 5000
+      targetPort: 5000
+  selector:
+    app: registry
+---
+kind: Service
+apiVersion: v1
+metadata:
+  name: registry-ui
+  labels:
+    app: registry
+spec:
+  ports:
+    - port: 8080
+      targetPort: 8080
+  selector:
+    app: registry
